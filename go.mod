@@ -8,7 +8,9 @@ require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudfoundry/jibber_jabber v0.0.0-20151120183258-bcc4c8345a21
 	github.com/fatih/color v1.17.0
+	github.com/jedib0t/go-pretty/v6 v6.5.9
 	github.com/mitchellh/copystructure v1.2.0
+	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/cobra v1.8.1
@@ -22,11 +24,16 @@ require (
 )
 
 require (
+	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
+)
+
+require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
-	github.com/cyphar/filepath-securejoin v0.3.0 // indirect
+	github.com/Masterminds/sprig/v3 v3.2.3
+	github.com/cyphar/filepath-securejoin v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dprotaso/go-yit v0.0.0-20240618133044-5a0af90af097 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
@@ -76,7 +83,7 @@ require (
 	k8s.io/api v0.30.3 // indirect
 	k8s.io/apiextensions-apiserver v0.30.3 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20240709000822-3c01b740850f // indirect
+	k8s.io/kube-openapi v0.0.0-20240726031636-6f6746feab9c // indirect
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect

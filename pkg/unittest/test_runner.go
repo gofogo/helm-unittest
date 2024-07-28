@@ -11,6 +11,7 @@ import (
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/formatter"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/results"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/snapshot"
+	"github.com/helm-unittest/helm-unittest/pkg/unittest/coverage"
 
 	"github.com/yargevad/filepathx"
 
@@ -85,6 +86,7 @@ type TestRunner struct {
 	Formatter        formatter.Formatter
 	UpdateSnapshot   bool
 	WithSubChart     bool
+	WithCoverage     bool
 	Strict           bool
 	Failfast         bool
 	TestFiles        []string
@@ -103,6 +105,9 @@ type TestRunner struct {
 func (tr *TestRunner) RunV3(ChartPaths []string) bool {
 	allPassed := true
 	start := time.Now()
+
+	metadata := coverage.NewCoverageReportMetadata()
+
 	for _, chartPath := range ChartPaths {
 		chart, err := v3loader.Load(chartPath)
 		if err != nil {
@@ -115,6 +120,9 @@ func (tr *TestRunner) RunV3(ChartPaths []string) bool {
 			continue
 		}
 		chartRoute := chart.Name()
+		for _, file := range chart.Templates {
+			metadata.AppendTemplate(chartPath, file.Name, string(file.Data))
+		}
 		testSuites, err := tr.getV3TestSuites(chartPath, chartRoute, chart)
 		if err != nil {
 			tr.printErroredChartHeader(err)
@@ -138,6 +146,9 @@ func (tr *TestRunner) RunV3(ChartPaths []string) bool {
 	}
 	tr.printSnapshotSummary()
 	tr.printSummary(time.Since(start))
+	tr.writeCoverageOutput()
+
+	metadata.OutElements()
 	return allPassed
 }
 
@@ -360,5 +371,16 @@ func (tr *TestRunner) writeTestOutput() error {
 		}
 	}
 
+	return nil
+}
+
+// TODO: description and supported formats
+// support
+// Formatter and write to OutputFile
+func (tr *TestRunner) writeCoverageOutput() error {
+	if tr.WithCoverage {
+		myTable := coverage.InitializeTable()
+		fmt.Println(myTable.Table.Render())
+	}
 	return nil
 }

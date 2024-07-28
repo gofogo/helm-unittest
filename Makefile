@@ -27,7 +27,7 @@ help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: plugin-dir
-plugin-dir: 
+plugin-dir:
   HELM_3_PLUGINS := $(shell bash -c 'eval $$(helm env); echo $$HELM_PLUGINS')
   HELM_PLUGIN_DIR := $(HELM_3_PLUGINS)/helm-unittest
 
@@ -55,7 +55,7 @@ build-debug: ## Compile packages and dependencies with debug flag
 	go build -o untt-dbg -gcflags "all=-N -l" ./cmd/helm-unittest
 
 .PHONY: build
-build: unittest ## Compile packages and dependencies
+build: ## Compile packages and dependencies unittest
 	go build -o untt -ldflags $(LDFLAGS) ./cmd/helm-unittest
 
 .PHONY: dist

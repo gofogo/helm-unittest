@@ -21,6 +21,7 @@ type testOptions struct {
 	colored        bool
 	updateSnapshot bool
 	withSubChart   bool
+	withCoverage   bool
 	testFiles      []string
 	valuesFiles    []string
 	outputFile     string
@@ -95,6 +96,7 @@ func RunPlugin(cmd *cobra.Command, chartPaths []string) {
 		Formatter:      formatter,
 		UpdateSnapshot: testConfig.updateSnapshot,
 		WithSubChart:   testConfig.withSubChart,
+		WithCoverage:   testConfig.withCoverage,
 		Strict:         testConfig.useStrict,
 		Failfast:       testConfig.useFailfast,
 		TestFiles:      testConfig.testFiles,
@@ -157,6 +159,11 @@ func InitPluginFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVarP(
 		&testConfig.withSubChart, "with-subchart", "s", true,
 		"include tests of the subcharts within `charts` folder",
+	)
+
+	cmd.PersistentFlags().BoolVarP(
+		&testConfig.withCoverage, "coverage", "c", false,
+		"enable coverage report (experimental)",
 	)
 
 	cmd.PersistentFlags().StringVarP(
