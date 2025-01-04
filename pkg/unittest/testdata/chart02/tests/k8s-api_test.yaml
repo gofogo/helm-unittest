@@ -3,8 +3,9 @@ templates:
   - configuration.yaml
   - hpa.yaml
 tests:
-  - it: should validate all kinds of aseertions
+  - it: should validate all kinds of assertions
     asserts:
       - isType:
           path: apiVersion
           type: string
+      - isValidSchema: {}

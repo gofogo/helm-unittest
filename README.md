@@ -364,3 +364,4 @@ To start developing this plugin please follow the [Contribution](./CONTRIBUTING.
 ## TODO
 
 - [ ] Update docs
+- [ ] Update json schema
