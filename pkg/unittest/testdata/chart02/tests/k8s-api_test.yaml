@@ -1,0 +1,10 @@
+suite: Test empty template
+templates:
+  - configuration.yaml
+  - hpa.yaml
+tests:
+  - it: should validate all kinds of aseertions
+    asserts:
+      - isType:
+          path: apiVersion
+          type: string
