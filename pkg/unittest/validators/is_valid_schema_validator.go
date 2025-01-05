@@ -2,13 +2,18 @@ package validators
 
 import (
 	"fmt"
+	"io/fs"
+	"os"
 
 	"github.com/helm-unittest/helm-unittest/internal/common"
 	log "github.com/sirupsen/logrus"
 	"github.com/yannh/kubeconform/pkg/resource"
+	"sigs.k8s.io/kubectl-validate/pkg/openapiclient"
 
 	// "github.com/yannh/kubeconform/pkg/resource"
 	"github.com/yannh/kubeconform/pkg/validator"
+	kubecmd "sigs.k8s.io/kubectl-validate/pkg/cmd"
+	kubevalidator "sigs.k8s.io/kubectl-validate/pkg/validator"
 )
 
 // IsValidSchemaValidator validate manifest against a valid schema
@@ -33,6 +38,10 @@ func (v IsValidSchemaValidator) failInfo(manifestIndex, actualIndex int, not boo
 	)
 }
 
+// TODO: schema in yaml -> translate to json first
+// TODO: add caching
+// TODO: common.K8sManifest should contain byte array and path to file
+
 // Validate implement Validatable
 func (v IsValidSchemaValidator) Validate(context *ValidateContext) (bool, []string) {
 	manifests := context.getManifests()
@@ -40,9 +49,30 @@ func (v IsValidSchemaValidator) Validate(context *ValidateContext) (bool, []stri
 	validateSuccess := false
 	validateErrors := make([]string, 0)
 
-	// TODO: schema in yaml -> translate to json first
-	// TODO: add caching
-	// TODO: common.K8sManifest should contain byte array and path to file
+	var schemaPatchesFs, localSchemasFs fs.FS
+	schemaPatchesFs = os.DirFS(".")
+	localSchemasFs = os.DirFS(".")
+
+	localCRDsDir := []string{"./Users/ik/source/self/go-workshop/helm-unittest-tmp/pkg/unittest/testdata/chart02/crds"}
+	var localCRDsFileSystems []fs.FS
+	for _, current := range localCRDsDir {
+		localCRDsFileSystems = append(localCRDsFileSystems, os.DirFS(current))
+	}
+
+	factory, err := kubevalidator.New(
+		openapiclient.NewOverlay(
+			// apply user defined patches on top of the final schema
+			openapiclient.PatchLoaderFromDirectory(schemaPatchesFs),
+			openapiclient.NewComposite(
+				// consult local OpenAPI
+				openapiclient.NewLocalSchemaFiles(localSchemasFs),
+				// consult local CRDs
+				openapiclient.NewLocalCRDFiles(localCRDsFileSystems...),
+			),
+		))
+	if err != nil {
+		log.Fatalf("failed initializing validator: %s", err)
+	}
 
 	for idx, manifest := range manifests {
 		// we could provide a schema to validate against
@@ -50,6 +80,14 @@ func (v IsValidSchemaValidator) Validate(context *ValidateContext) (bool, []stri
 		m, err := common.YmlMarshall(manifest)
 		if err != nil {
 			log.Fatalf("error: %v", err)
+		}
+
+		fmt.Println("validating with kubevalidator", manifest)
+		err = kubecmd.ValidateDocument([]byte(m), factory)
+		if err != nil {
+			log.Fatalf("failed validating document with kubectl-validator: %s", err)
+		} else {
+			fmt.Println("kubevalidator success for manifest", manifest)
 		}
 
 		// support schema local or remote
