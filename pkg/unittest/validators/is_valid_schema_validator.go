@@ -14,6 +14,7 @@ import (
 // IsValidSchemaValidator validate manifest against a valid schema
 type IsValidSchemaValidator struct {
 	// Path string
+	Schemas []string
 }
 
 func (v IsValidSchemaValidator) failInfo(manifestIndex, actualIndex int, not bool) []string {
@@ -39,19 +40,20 @@ func (v IsValidSchemaValidator) Validate(context *ValidateContext) (bool, []stri
 	validateSuccess := false
 	validateErrors := make([]string, 0)
 
+	// TODO: schema in yaml -> translate to json first
+	// TODO: add caching
+	// TODO: common.K8sManifest should contain byte array and path to file
+
 	for idx, manifest := range manifests {
 		// we could provide a schema to validate against
-		// TODO
-		// - add caching
-		// TODO: common.K8sManifest should contain byte array and path to file
-		// Convert K8sManifest to byte array
+		// Convert K8sManifest to byte array as temporary solution
 		m, err := common.YmlMarshall(manifest)
 		if err != nil {
 			log.Fatalf("error: %v", err)
 		}
 
 		// support schema local or remote
-		vr, err := validator.New(nil, validator.Opts{Strict: true})
+		vr, err := validator.New(v.Schemas, validator.Opts{Strict: true})
 		if err != nil {
 			log.Fatalf("failed initializing validator: %s", err)
 		}
@@ -65,7 +67,7 @@ func (v IsValidSchemaValidator) Validate(context *ValidateContext) (bool, []stri
 		fmt.Println("comport result", res.Status, res.ValidationErrors)
 		if res.Status == validator.Invalid || res.Status == validator.Error {
 			// log.Fatalf("resource %d in file is not valid: %s", idx, res.Err)
-			fmt.Println(fmt.Sprintf("validator.Invalid resource %d in file is not valid: %s", idx, res.ValidationErrors))
+			fmt.Println(fmt.Sprintf("validator.Invalid resource %d in file is not valid: %s", idx, res.Err))
 		}
 		if res.Status == validator.Valid {
 			fmt.Println(fmt.Sprintf("validator.Valid resource '%d' and manifest '%v' is valid", idx, manifest))

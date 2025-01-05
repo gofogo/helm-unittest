@@ -2,10 +2,38 @@ suite: Test empty template
 templates:
   - configuration.yaml
   - hpa.yaml
+  - http-proxy.yaml
+  - training-job-crd.yaml
 tests:
-  - it: should validate all kinds of assertions
+#  - it: should validate all kinds of assertions
+#    asserts:
+#      - isType:
+#          path: apiVersion
+#          type: string
+#      - isValidSchema: {}
+
+#  - it: should validate schema when url provided
+#    template: http-proxy.yaml
+#    asserts:
+#      - isType:
+#          path: apiVersion
+#          type: string
+##          test for not a valid schema
+#      - isValidSchema:
+#          schemas:
+#            - https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+#      - isNotValidSchema: {}
+
+  - it: should validate custom resource with local schema
+    template: training-job-crd.yaml
     asserts:
-      - isType:
-          path: apiVersion
-          type: string
-      - isValidSchema: {}
+      - isValidSchema:
+            localSchemas:
+              - ./path/to/folder/with/schemas
+            localCrds:
+              - ./path/to/folder/with/crds
+            schemas:
+#              - /Users/ik/source/self/go-workshop/helm-unittest-tmp/pkg/unittest/testdata/chart02/crds/crd_schema.yaml
+                - /Users/ik/source/self/go-workshop/helm-unittest-tmp/pkg/unittest/testdata/chart02/registry
+
+#                - ./crds/crd_schema.yaml

@@ -296,6 +296,7 @@ var assertTypeMapping = map[string]assertTypeDef{
 	"isAPIVersion":      {reflect.TypeOf(validators.IsAPIVersionValidator{}), false, true},
 	"hasDocuments":      {reflect.TypeOf(validators.HasDocumentsValidator{}), false, true},
 	"isValidSchema":     {reflect.TypeOf(validators.IsValidSchemaValidator{}), false, true},
+	"isNotValidSchema":  {reflect.TypeOf(validators.IsValidSchemaValidator{}), true, true},
 	"isSubset":          {reflect.TypeOf(validators.IsSubsetValidator{}), false, true},
 	"isNotSubset":       {reflect.TypeOf(validators.IsSubsetValidator{}), true, true},
 	"isNullOrEmpty":     {reflect.TypeOf(validators.IsNullOrEmptyValidator{}), false, true},
