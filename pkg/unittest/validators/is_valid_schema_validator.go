@@ -7,11 +7,9 @@ import (
 
 	"github.com/helm-unittest/helm-unittest/internal/common"
 	log "github.com/sirupsen/logrus"
-	"github.com/yannh/kubeconform/pkg/resource"
+	// "github.com/yannh/kubeconform/pkg/resource"
 	"sigs.k8s.io/kubectl-validate/pkg/openapiclient"
 
-	// "github.com/yannh/kubeconform/pkg/resource"
-	"github.com/yannh/kubeconform/pkg/validator"
 	kubecmd "sigs.k8s.io/kubectl-validate/pkg/cmd"
 	kubevalidator "sigs.k8s.io/kubectl-validate/pkg/validator"
 )
@@ -90,26 +88,28 @@ func (v IsValidSchemaValidator) Validate(context *ValidateContext) (bool, []stri
 			fmt.Println("kubevalidator success for manifest", manifest)
 		}
 
+		// kubeconform example
+
 		// support schema local or remote
-		vr, err := validator.New(v.Schemas, validator.Opts{Strict: true})
-		if err != nil {
-			log.Fatalf("failed initializing validator: %s", err)
-		}
+		// vr, err := validator.New(v.Schemas, validator.Opts{Strict: true})
+		// if err != nil {
+		// 	log.Fatalf("failed initializing validator: %s", err)
+		// }
 
 		// make sure we are using validate with context
-		r := resource.Resource{
-			Bytes: []byte(m),
-		}
+		// r := resource.Resource{
+		// 	Bytes: []byte(m),
+		// }
 
-		res := vr.ValidateResource(r)
-		fmt.Println("comport result", res.Status, res.ValidationErrors)
-		if res.Status == validator.Invalid || res.Status == validator.Error {
-			// log.Fatalf("resource %d in file is not valid: %s", idx, res.Err)
-			fmt.Println(fmt.Sprintf("validator.Invalid resource %d in file is not valid: %s", idx, res.Err))
-		}
-		if res.Status == validator.Valid {
-			fmt.Println(fmt.Sprintf("validator.Valid resource '%d' and manifest '%v' is valid", idx, manifest))
-		}
+		// res := vr.ValidateResource(r)
+		// fmt.Println("comport result", res.Status, res.ValidationErrors)
+		// if res.Status == validator.Invalid || res.Status == validator.Error {
+		// 	// log.Fatalf("resource %d in file is not valid: %s", idx, res.Err)
+		// 	fmt.Println(fmt.Sprintf("validator.Invalid resource %d in file is not valid: %s", idx, res.Err))
+		// }
+		// if res.Status == validator.Valid {
+		// 	fmt.Println(fmt.Sprintf("validator.Valid resource '%d' and manifest '%v' is valid", idx, manifest))
+		// }
 
 		// actual, err := valueutils.GetValueOfSetPath(manifest, v.Path)
 		// if err != nil {
