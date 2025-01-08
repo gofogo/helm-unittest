@@ -61,7 +61,7 @@ func (a *Assertion) Assert(
 				invalidRender := "Error: rendered manifest is empty"
 				failInfo = append(failInfo, invalidRender)
 			} else {
-				emptyTemplate := []common.K8sManifest{}
+				var emptyTemplate []common.K8sManifest
 				validatePassed, singleFailInfo = a.validateTemplate(emptyTemplate, emptyTemplate, snapshotComparer, renderError, failfast)
 			}
 
@@ -95,7 +95,6 @@ func (a *Assertion) Assert(
 			singleTemplateResult[template] = rendered
 
 			selectedDocs := selectedDocsByTemplate[template]
-
 			validatePassed, singleFailInfo = a.validateTemplate(rendered, selectedDocs, snapshotComparer, renderError, failfast)
 
 			if !validatePassed {
@@ -123,8 +122,9 @@ func (a *Assertion) validateTemplate(rendered []common.K8sManifest, selectedDocs
 	var singleFailInfo []string
 
 	validatePassed, singleFailInfo = a.validator.Validate(&validators.ValidateContext{
-		Docs:             rendered,
-		SelectedDocs:     &selectedDocs,
+		Docs:         rendered,
+		SelectedDocs: &selectedDocs,
+		// SelectedDocsPath: a.DocumentSelector.Path,
 		Negative:         a.Not != a.antonym,
 		SnapshotComparer: snapshotComparer,
 		RenderError:      renderError,
@@ -145,7 +145,7 @@ func (a *Assertion) getDocumentsByDefaultTemplates(templatesResult map[string][]
 }
 
 func (a *Assertion) getKeys(docs map[string][]common.K8sManifest) []string {
-	keys := []string{}
+	var keys []string
 
 	for key := range docs {
 		keys = append(keys, key)
@@ -225,7 +225,6 @@ func (a *Assertion) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			SkipEmptyTemplates: documentSelectorSkipEmptyTemplates,
 		}
 	}
-
 	if err := a.constructValidator(assertDef); err != nil {
 		return err
 	}
@@ -296,6 +295,8 @@ var assertTypeMapping = map[string]assertTypeDef{
 	"isKind":            {reflect.TypeOf(validators.IsKindValidator{}), false, true},
 	"isAPIVersion":      {reflect.TypeOf(validators.IsAPIVersionValidator{}), false, true},
 	"hasDocuments":      {reflect.TypeOf(validators.HasDocumentsValidator{}), false, true},
+	"isValidSchema":     {reflect.TypeOf(validators.IsValidSchemaValidator{}), false, true},
+	"isNotValidSchema":  {reflect.TypeOf(validators.IsValidSchemaValidator{}), true, true},
 	"isSubset":          {reflect.TypeOf(validators.IsSubsetValidator{}), false, true},
 	"isNotSubset":       {reflect.TypeOf(validators.IsSubsetValidator{}), true, true},
 	"isNullOrEmpty":     {reflect.TypeOf(validators.IsNullOrEmptyValidator{}), false, true},

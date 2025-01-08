@@ -360,3 +360,8 @@ MIT
 
 Issues and PRs are welcome!
 To start developing this plugin please follow the [Contribution](./CONTRIBUTING.md) guidelines.
+
+## TODO
+
+- [ ] Update docs
+- [ ] Update json schema

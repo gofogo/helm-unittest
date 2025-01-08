@@ -1,0 +1,6 @@
+apiVersion: v2
+name: support-is-valid-scheme
+version: 0.1.0
+description: simple chart to validate new feature isValidScheme
+keywords:
+  - helm template case1 pkg/unittest/testdata/chart02 --output-dir _scratch

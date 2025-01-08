@@ -1,0 +1,6 @@
+environment: {}
+
+scalability:
+  replicas: 3
+  maxReplicas: 6
+  autoscaleCPUPercent: 80
