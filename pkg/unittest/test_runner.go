@@ -96,15 +96,11 @@ func (tr *TestRunner) RunV3(ChartPaths []string) bool {
 			tr.printErroredChartHeader(err)
 			tr.countChart(false, err)
 			allPassed = false
-			if tr.Failfast {
-				break
-			}
 			continue
 		}
 
 		tr.printChartHeader(chart.Name(), chartPath)
 		chartPassed := tr.runV3SuitesOfChart(testSuites, chartPath)
-
 		tr.countChart(chartPassed, nil)
 		allPassed = allPassed && chartPassed
 	}
@@ -212,6 +208,7 @@ func (tr *TestRunner) runV3SuitesOfChart(suites []*TestSuite, chartPath string) 
 
 		result := suite.RunV3(chartPath, snapshotCache, tr.Failfast, tr.RenderPath, &results.TestSuiteResult{})
 		chartPassed = chartPassed && result.Passed
+		tr.Failfast = result.FailFast
 		tr.handleSuiteResult(result)
 		tr.testResults = append(tr.testResults, result)
 

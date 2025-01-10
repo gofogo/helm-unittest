@@ -233,12 +233,16 @@ func (s *TestSuite) RunV3(
 	result.DisplayName = s.Name
 	result.FilePath = s.definitionFile
 
-	result.Passed, result.TestsResult = s.runV3TestJobs(
+	r, tr := s.runV3TestJobs(
 		chartPath,
 		snapshotCache,
 		failfast,
 		renderPath,
 	)
+
+	result.Passed = r.Pass
+	result.FailFast = r.FailFast
+	result.TestsResult = tr
 
 	result.CountSnapshot(snapshotCache)
 	return result
@@ -317,35 +321,41 @@ func (s *TestSuite) polishChartSettings(test *TestJob) {
 	log.WithField(common.LOG_TEST_SUITE, "polish-chart-settings").Debug("test.chart '", test.Chart)
 }
 
+type SuiteResult struct {
+	Pass     bool
+	FailFast bool
+}
+
 func (s *TestSuite) runV3TestJobs(
 	chartPath string,
 	cache *snapshot.Cache,
 	failfast bool,
 	renderPath string,
-) (bool, []*results.TestJobResult) {
-	suitePass := false
+) (*SuiteResult, []*results.TestJobResult) {
+	result := SuiteResult{Pass: false, FailFast: false}
 	jobResults := make([]*results.TestJobResult, len(s.Tests))
 
-	for idx, testJob := range s.Tests {
-		// (Re)load the chart used by this suite (with logging temporarily disabled)
-		log.SetOutput(io.Discard)
-		chart, _ := v3loader.Load(chartPath)
-		log.SetOutput(os.Stdout)
+	// (Re)load the chart used by this suite (with logging temporarily disabled)
+	log.SetOutput(io.Discard)
+	chart, _ := v3loader.Load(chartPath)
+	log.SetOutput(os.Stdout)
 
-		jobResult := testJob.RunV3(chart, cache, failfast, renderPath, &results.TestJobResult{Index: idx})
+	for idx, testJob := range s.Tests {
+		jobResult := testJob.RunV3(chart, cache, failfast, renderPath, &results.TestJobResult{DisplayName: testJob.Name, Index: idx})
 		jobResults[idx] = jobResult
 
 		if idx == 0 {
-			suitePass = jobResult.Passed
+			result.Pass = jobResult.Passed
 		}
 
-		suitePass = suitePass && jobResult.Passed
+		result.Pass = result.Pass && jobResult.Passed
 
-		if !suitePass && failfast {
+		if !result.Pass && failfast {
+			result.FailFast = true
 			break
 		}
 	}
-	return suitePass, jobResults
+	return &result, jobResults
 }
 
 func (s *TestSuite) validateTestSuite() error {

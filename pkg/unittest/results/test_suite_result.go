@@ -15,6 +15,7 @@ type TestSuiteResult struct {
 	DisplayName      string
 	FilePath         string
 	Passed           bool
+	FailFast         bool
 	ExecError        error
 	TestsResult      []*TestJobResult
 	SnapshotCounting struct {
@@ -46,6 +47,7 @@ func (tsr TestSuiteResult) printTitle(printer *printer.Printer) {
 
 // Print printing the testresult output.
 func (tsr TestSuiteResult) Print(printer *printer.Printer, verbosity int) {
+	// fmt.Println("TestSuiteResult.Print", printer, "tsr", tsr)
 	tsr.printTitle(printer)
 	if tsr.ExecError != nil {
 		printer.Println(printer.Highlight("%s", "- Execution Error: "), 1)
@@ -54,6 +56,9 @@ func (tsr TestSuiteResult) Print(printer *printer.Printer, verbosity int) {
 	}
 
 	for _, result := range tsr.TestsResult {
+		if result == nil {
+			continue
+		}
 		result.print(printer, verbosity)
 	}
 }
