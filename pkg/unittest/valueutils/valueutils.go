@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
+	"github.com/goccy/go-yaml"
 	"github.com/helm-unittest/helm-unittest/internal/common"
-	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 )
 
 // GetValueOfSetPath get the value of the `--set` format path from a manifest
@@ -20,9 +21,8 @@ func GetValueOfSetPath(manifest common.K8sManifest, path string) ([]interface{},
 	byteBuffer := new(bytes.Buffer)
 
 	// Convert K8Manifest to yaml.Node
-	node := common.NewYamlNode()
-	yamlEncoder := common.YamlNewEncoder(byteBuffer)
-	yamlEncoder.SetIndent(common.YAMLINDENTION)
+	node := common.YamlNode{}
+	yamlEncoder := common.YamlNewEncoder(byteBuffer, yaml.Indent(common.YAMLINDENTION))
 
 	err := yamlEncoder.Encode(manifest)
 	if err != nil {
@@ -35,17 +35,31 @@ func GetValueOfSetPath(manifest common.K8sManifest, path string) ([]interface{},
 		return nil, err
 	}
 
+	validPath := fmt.Sprintf("$..%s", path)
+
+	// todo: should be a logger
+	fmt.Println("line 38", validPath)
+
+	yamlPah, err := yaml.PathString(validPath)
+	fmt.Println(yamlPah, err)
+
 	// Set Path
-	yamlPath, err := yamlpath.NewPath(path)
+	// yamlPath, err := yamlpath.NewPath(path)
 	if err != nil {
 		return nil, err
 	}
 
+	n, _ := yamlPah.ReadNode(strings.NewReader(byteBuffer.String()))
+
+	fmt.Println("n:>", n)
 	// Search for nodes
-	manifestParts, err := yamlPath.Find(&node.Node)
+
+	manifestParts, err := yamlPah.FilterNode(node.Node)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("manifestParts:", manifestParts)
 
 	for _, node := range manifestParts {
 		var singleResult interface{}
