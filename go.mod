@@ -20,6 +20,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
+require github.com/goccy/go-yaml v1.15.13 // indirect
+
 require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect

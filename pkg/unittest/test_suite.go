@@ -17,6 +17,7 @@ import (
 	v3util "helm.sh/helm/v3/pkg/chartutil"
 	v3engine "helm.sh/helm/v3/pkg/engine"
 
+	yaml "github.com/goccy/go-yaml"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,8 +75,18 @@ func createTestSuite(suiteFilePath string, chartRoute string, content string, st
 	}
 
 	// Use decoder to setup strict or unstrict
-	yamlDecoder := common.YamlNewDecoder(strings.NewReader(content))
-	yamlDecoder.KnownFields(strict)
+	if strict {
+		yamlDecoder := yaml.NewDecoder(strings.NewReader(content), yaml.Strict())
+		if err := yamlDecoder.Decode(&suite); err != nil {
+			return &suite, err
+		}
+	} else {
+		yamlDecoder := yaml.NewDecoder(strings.NewReader(content))
+		if err := yamlDecoder.Decode(&suite); err != nil {
+			return &suite, err
+
+	}
+	// yamlDecoder := common.YamlNewDecoder(strings.NewReader(content), yaml.Strict())
 
 	if err := yamlDecoder.Decode(&suite); err != nil {
 		// We can retry if relates to unmaintained library issue https://github.com/go-yaml/yaml/pull/862

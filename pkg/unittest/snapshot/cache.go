@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"os"
 
+	yaml "github.com/goccy/go-yaml"
 	"github.com/helm-unittest/helm-unittest/internal/common"
-	yaml "sigs.k8s.io/yaml"
 )
 
 // CompareResult result return by Cache.Compare
@@ -125,8 +125,7 @@ func (s *Cache) StoreToFileIfNeeded() (bool, error) {
 
 	if s.IsUpdating || s.insertedCount > 0 || s.VanishedCount() > 0 {
 		byteBuffer := new(bytes.Buffer)
-		yamlEncoder := common.YamlNewEncoder(byteBuffer)
-		yamlEncoder.SetIndent(common.YAMLINDENTION)
+		yamlEncoder := common.YamlNewEncoder(byteBuffer, yaml.Indent(common.YAMLINDENTION))
 		if err := yamlEncoder.Encode(s.current); err != nil {
 			return false, err
 		}
