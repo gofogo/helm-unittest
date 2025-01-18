@@ -89,7 +89,6 @@ func parseRenderError(errorMessage string) (string, map[string]string) {
 }
 
 func parseYamlFile(rendered string) ([]common.K8sManifest, error) {
-	fmt.Println("line 92>>>", rendered)
 	var yamls []common.K8sManifest
 	rs := bytes.NewReader([]byte(rendered))
 	originalData, err := io.ReadAll(rs)

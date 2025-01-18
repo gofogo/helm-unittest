@@ -19,7 +19,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	yaml "github.com/goccy/go-yaml"
+	gyaml "github.com/goccy/go-yaml"
 )
 
 // m modifier: multi line. Causes ^ and $ to match the begin/end of each line (not only begin/end of string)
@@ -33,41 +33,73 @@ func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFile
 		return []*TestSuite{{chartRoute: chartRoute}}, err
 	}
 
-	var v interface{}
-	e := yaml.Unmarshal(content, &v)
-	if e != nil {
-		fmt.Println("line 40 exiting....")
-		panic(e)
+	// Use decoder to setup strict or unstrict
+	var decoder *gyaml.Decoder
+
+	decoder = gyaml.NewDecoder(strings.NewReader(string(content)))
+
+	cwd, _ := os.Getwd()
+	absPath, _ := filepath.Abs(suiteFilePath)
+
+	var suites []*TestSuite
+	for {
+		var s TestSuite
+		if err := decoder.Decode(&s); err != nil {
+			fmt.Println("line 43 error", err, absPath)
+			break
+		}
+
+		s.definitionFile, err = filepath.Rel(cwd, absPath)
+		if err != nil {
+			break
+		}
+
+		s.chartRoute = chartRoute
+		s.fromRender = false
+
+		for _, test := range s.Tests {
+			if test != nil {
+				s.polishChartSettings(test)
+				s.polishCapabilitiesSettings(test)
+			}
+		}
+
+		err = s.validateTestSuite()
+		if err != nil {
+			break
+		}
+		s.Values = append(s.Values, valueFilesSet...)
+		suites = append(suites, &s)
 	}
 
-	fmt.Println("line 43", v)
+	fmt.Println("line 44", suites)
 
 	// The pattern matches lines that contain only three hyphens (---), which is a common
 	// delimiter used in various file formats (e.g., YAML, Markdown) to separate sections.
 	// The -1 passed as the third argument to Split tells it to return all parts,
 	// including the parts matched by the regular expression pattern.
-	parts := splitterPattern.Split(string(content), -1)
-	log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("suite '", suiteFilePath, "' total parts ", len(parts))
-	var testSuites []*TestSuite
-	for _, part := range parts {
-		if len(strings.TrimSpace(part)) > 0 {
-			testSuite, suiteErr := createTestSuite(suiteFilePath, chartRoute, part, strict, valueFilesSet, false)
-			if testSuite != nil {
-				for _, test := range testSuite.Tests {
-					if test != nil {
-						testSuite.polishChartSettings(test)
-						testSuite.polishCapabilitiesSettings(test)
-					}
-				}
-			}
-			testSuites = append(testSuites, testSuite)
-			if suiteErr != nil {
-				log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("error '", suiteErr.Error(), "' strict ", strict)
-				return testSuites, suiteErr
-			}
-		}
-	}
-	return testSuites, nil
+	// parts := splitterPattern.Split(string(content), -1)
+	// log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("suite '", suiteFilePath, "' total parts ", len(parts))
+	// var testSuites []*TestSuite
+	// for _, part := range parts {
+	// 	if len(strings.TrimSpace(part)) > 0 {
+	// 		testSuite, suiteErr := createTestSuite(suiteFilePath, chartRoute, part, strict, valueFilesSet, false)
+	// 		if testSuite != nil {
+	// 			for _, test := range testSuite.Tests {
+	// 				if test != nil {
+	// 					testSuite.polishChartSettings(test)
+	// 					testSuite.polishCapabilitiesSettings(test)
+	// 				}
+	// 			}
+	// 		}
+	// 		testSuites = append(testSuites, testSuite)
+	// 		if suiteErr != nil {
+	// 			log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("error '", suiteErr.Error(), "' strict ", strict)
+	// 			return testSuites, suiteErr
+	// 		}
+	// 	}
+	// }
+	return suites, nil
 }
 
 func createTestSuite(suiteFilePath string, chartRoute string, content string, strict bool, valueFilesSet []string, fromRender bool) (*TestSuite, error) {
@@ -206,6 +238,10 @@ func iterateTemplates(template string, suites []*TestSuite, absPath string, char
 		suites = append(suites, suite)
 	}
 	return subYamlErrs, previousSuitesLen, suites
+}
+
+type TestSuites struct {
+	Suites []*TestSuite
 }
 
 // TestSuite defines scope and templates to render and tests to run
@@ -357,8 +393,6 @@ func (s *TestSuite) runV3TestJobs(
 ) *SuiteResult {
 	result := SuiteResult{Pass: false, FailFast: false}
 	jobResults := make([]*results.TestJobResult, len(s.Tests))
-
-	fmt.Println("line 350")
 
 	for idx, testJob := range s.Tests {
 		// (Re)load the chart used by this suite (with logging temporarily disabled)
