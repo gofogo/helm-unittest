@@ -1,6 +1,7 @@
 package unittest
 
 import (
+	"bytes"
 	"cmp"
 	"fmt"
 	"io"
@@ -20,6 +21,8 @@ import (
 	v3chart "helm.sh/helm/v3/pkg/chart"
 	v3util "helm.sh/helm/v3/pkg/chartutil"
 	v3engine "helm.sh/helm/v3/pkg/engine"
+
+	yaml "github.com/goccy/go-yaml"
 )
 
 const LOG_TEST_JOB = "test-job"
@@ -86,6 +89,29 @@ func parseRenderError(errorMessage string) (string, map[string]string) {
 }
 
 func parseYamlFile(rendered string) ([]common.K8sManifest, error) {
+	fmt.Println("line 92>>>", rendered)
+	var yamls []common.K8sManifest
+	rs := bytes.NewReader([]byte(rendered))
+	originalData, err := io.ReadAll(rs)
+	if err != nil {
+		fmt.Println("failed to read config")
+	}
+
+	var content interface{}
+	if err := yaml.Unmarshal(originalData, &content); err != nil {
+		fmt.Println("initial YAML parse error")
+	}
+
+	fmt.Println("Content", content)
+
+	if err := yaml.Unmarshal([]byte(rendered), yamls); err != nil {
+		fmt.Println("Error parsing yaml", err)
+		return nil, err
+	}
+	for _, yml := range yamls {
+		fmt.Println("Yaml", yml)
+	}
+
 	// Replace --- with ---\n to ensure yaml rendering is parsed correctly/
 	rendered = splitterPattern.ReplaceAllString(rendered, "\n---\n")
 	decoder := common.YamlNewDecoder(strings.NewReader(rendered))

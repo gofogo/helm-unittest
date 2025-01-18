@@ -18,6 +18,8 @@ import (
 	v3engine "helm.sh/helm/v3/pkg/engine"
 
 	log "github.com/sirupsen/logrus"
+
+	yaml "github.com/goccy/go-yaml"
 )
 
 // m modifier: multi line. Causes ^ and $ to match the begin/end of each line (not only begin/end of string)
@@ -30,6 +32,15 @@ func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFile
 	if err != nil {
 		return []*TestSuite{{chartRoute: chartRoute}}, err
 	}
+
+	var v interface{}
+	e := yaml.Unmarshal(content, &v)
+	if e != nil {
+		fmt.Println("line 40 exiting....")
+		panic(e)
+	}
+
+	fmt.Println("line 43", v)
 
 	// The pattern matches lines that contain only three hyphens (---), which is a common
 	// delimiter used in various file formats (e.g., YAML, Markdown) to separate sections.
@@ -347,6 +358,7 @@ func (s *TestSuite) runV3TestJobs(
 	result := SuiteResult{Pass: false, FailFast: false}
 	jobResults := make([]*results.TestJobResult, len(s.Tests))
 
+	fmt.Println("line 350")
 
 	for idx, testJob := range s.Tests {
 		// (Re)load the chart used by this suite (with logging temporarily disabled)

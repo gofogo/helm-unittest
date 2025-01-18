@@ -136,3 +136,13 @@ func TestV3RunnerWith_Fixture_Chart_FailFast(t *testing.T) {
 		})
 	}
 }
+
+func TestV3RunnerWith_Fixture_Chart_YamlSeparator(t *testing.T) {
+	// buffer := new(bytes.Buffer)
+	runner := TestRunner{
+		Printer:   printer.NewPrinter(os.Stderr, nil),
+		TestFiles: []string{"tests/*_test.yaml"},
+	}
+	_ = runner.RunV3([]string{"testdata/chart-yaml-separator"})
+	// assert.True(t, passed, buffer.String())
+}
