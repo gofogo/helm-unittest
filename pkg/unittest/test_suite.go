@@ -1,12 +1,14 @@
 package unittest
 
 import (
+	"bytes"
 	"cmp"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -18,11 +20,24 @@ import (
 	v3engine "helm.sh/helm/v3/pkg/engine"
 
 	log "github.com/sirupsen/logrus"
+
+	gyaml "github.com/goccy/go-yaml"
 )
 
 // m modifier: multi line. Causes ^ and $ to match the begin/end of each line (not only begin/end of string)
 // helm https://github.com/helm/helm/blob/145d12f82fc7a2e39a17713340825686b661e0a1/pkg/releaseutil/manifest.go#L36
 var splitterPattern = regexp.MustCompile("(?:^|\\s*\n)---\\s*")
+
+func checkIntegerType(value interface{}) (int, error) {
+	switch value.(type) {
+	case int, int8, int16, int32, int64:
+		return value.(int), nil
+	case uint, uint8, uint16, uint32, uint64:
+		return value.(int), nil
+	default:
+		return 0, fmt.Errorf("not an integer")
+	}
+}
 
 // ParseTestSuiteFile parse a suite file that contain one or more suites at path and returns an array of TestSuite
 func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFilesSet []string) ([]*TestSuite, error) {
@@ -31,32 +46,78 @@ func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFile
 		return []*TestSuite{{chartRoute: chartRoute}}, err
 	}
 
-	// The pattern matches lines that contain only three hyphens (---), which is a common
-	// delimiter used in various file formats (e.g., YAML, Markdown) to separate sections.
-	// The -1 passed as the third argument to Split tells it to return all parts,
-	// including the parts matched by the regular expression pattern.
-	parts := splitterPattern.Split(string(content), -1)
-	log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("suite '", suiteFilePath, "' total parts ", len(parts))
-	var testSuites []*TestSuite
-	for _, part := range parts {
-		if len(strings.TrimSpace(part)) > 0 {
-			testSuite, suiteErr := createTestSuite(suiteFilePath, chartRoute, part, strict, valueFilesSet, false)
-			if testSuite != nil {
-				for _, test := range testSuite.Tests {
-					if test != nil {
-						testSuite.polishChartSettings(test)
-						testSuite.polishCapabilitiesSettings(test)
+	var decoder *gyaml.Decoder
+
+	options := []gyaml.DecodeOption{gyaml.CustomUnmarshaler(func(dst *interface{}, b []byte) error {
+		if err := gyaml.Unmarshal(b, dst); err != nil {
+			return err
+		}
+
+		fmt.Println("BINGO", *dst, reflect.TypeOf(*dst))
+		// required for backward compoatiblity with gopkg.in/yaml.v3 as it unmarshals all numbers as int64
+		if reflect.ValueOf(*dst).CanUint() {
+			// fmt.Println("BINGO before", reflect.TypeOf(*dst))
+			*dst = int(reflect.ValueOf(*dst).Uint())
+			fmt.Println("BINGO after", *dst, reflect.TypeOf(*dst))
+			// fmt.Println("BINGO after", *dst, reflect.TypeOf(*dst))
+		}
+		return nil
+	})}
+
+	if strict {
+		decoder = gyaml.NewDecoder(bytes.NewReader(content), gyaml.Strict(), options[0])
+	} else {
+		decoder = gyaml.NewDecoder(bytes.NewReader(content), options...)
+	}
+
+	cwd, _ := os.Getwd()
+	absPath, _ := filepath.Abs(suiteFilePath)
+	var suites []*TestSuite
+	for {
+		var s TestSuite
+		if err := decoder.Decode(&s); err != nil {
+			log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("suite '", suiteFilePath, "' error ", err)
+			if err.Error() == "EOF" {
+				break
+			} else if strings.Contains(err.Error(), "unknown escape character") {
+				y := common.YmlEscapeHandlers{}
+				escaped := y.Escape(string(content))
+				if escaped != nil {
+					if err = decoder.Decode(&s); err != nil {
+						if err.Error() == "EOF" {
+							break
+						}
+						return suites, err
 					}
 				}
-			}
-			testSuites = append(testSuites, testSuite)
-			if suiteErr != nil {
-				log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("error '", suiteErr.Error(), "' strict ", strict)
-				return testSuites, suiteErr
+			} else {
+				return suites, err
 			}
 		}
+
+		s.definitionFile, err = filepath.Rel(cwd, absPath)
+		if err != nil {
+			return suites, err
+		}
+
+		s.chartRoute = chartRoute
+		s.fromRender = false
+
+		for _, test := range s.Tests {
+			if test != nil {
+				s.polishChartSettings(test)
+				s.polishCapabilitiesSettings(test)
+			}
+		}
+		s.Values = append(s.Values, valueFilesSet...)
+		suites = append(suites, &s)
+
+		err = s.validateTestSuite()
+		if err != nil {
+			return suites, err
+		}
 	}
-	return testSuites, nil
+	return suites, nil
 }
 
 func createTestSuite(suiteFilePath string, chartRoute string, content string, strict bool, valueFilesSet []string, fromRender bool) (*TestSuite, error) {
@@ -347,7 +408,6 @@ func (s *TestSuite) runV3TestJobs(
 	result := SuiteResult{Pass: false, FailFast: false}
 	jobResults := make([]*results.TestJobResult, len(s.Tests))
 
-
 	for idx, testJob := range s.Tests {
 		// (Re)load the chart used by this suite (with logging temporarily disabled)
 		log.SetOutput(io.Discard)
@@ -392,7 +452,7 @@ func (s *TestSuite) validateTestSuite() error {
 
 func (s *TestSuite) SnapshotFileUrl() string {
 	if len(s.SnapshotId) > 0 {
-		// appedn the snapshot id
+		// append the snapshot id
 		return fmt.Sprintf("%s_%s", s.definitionFile, s.SnapshotId)
 	}
 	return s.definitionFile

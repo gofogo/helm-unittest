@@ -7,6 +7,7 @@ import (
 
 	"io"
 
+	gyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
 	yamlv3 "gopkg.in/yaml.v3"
 	yaml "sigs.k8s.io/yaml"
@@ -25,6 +26,10 @@ func NewYamlNode() YamlNode {
 // YamlNewDecoder returns a new decoder that reads from r.
 func YamlNewDecoder(r io.Reader) *yamlv3.Decoder {
 	return yamlv3.NewDecoder(r)
+}
+
+func GYamlNewDecoder(r io.Reader, opts ...gyaml.DecodeOption) *gyaml.Decoder {
+	return gyaml.NewDecoder(r, opts...)
 }
 
 // YamlNewEncoder returns a new encoder that writes to w.
