@@ -180,12 +180,10 @@ func (tr *TestRunner) getTestSuites(chartPath, chartRoute string) ([]*TestSuite,
 //
 // It returns a slice of TestSuite pointers and an error if any occurred during processing.
 func (tr *TestRunner) getV3TestSuites(chartPath, chartRoute string, chart *v3chart.Chart) ([]*TestSuite, error) {
-	println("line 182 getV3TestSuites")
 	resultSuites, err := tr.getTestSuites(chartPath, chartRoute)
 	if err != nil {
 		return nil, err
 	}
-	println("line 186 getV3TestSuites")
 
 	if tr.WithSubChart {
 		for _, subchart := range chart.Dependencies() {

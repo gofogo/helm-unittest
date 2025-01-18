@@ -142,6 +142,7 @@ func TestV3RunnerWith_Fixture_Chart_YamlSeparator(t *testing.T) {
 	runner := TestRunner{
 		Printer:   printer.NewPrinter(os.Stderr, nil),
 		TestFiles: []string{"tests/*_test.yaml"},
+		Strict:    true,
 	}
 	_ = runner.RunV3([]string{"testdata/chart-yaml-separator"})
 	// assert.True(t, passed, buffer.String())

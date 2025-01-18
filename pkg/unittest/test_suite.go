@@ -1,6 +1,7 @@
 package unittest
 
 import (
+	"bytes"
 	"cmp"
 	"errors"
 	"fmt"
@@ -36,7 +37,11 @@ func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFile
 	// Use decoder to setup strict or unstrict
 	var decoder *gyaml.Decoder
 
-	decoder = gyaml.NewDecoder(strings.NewReader(string(content)))
+	if strict {
+		decoder = gyaml.NewDecoder(bytes.NewReader(content), gyaml.Strict())
+	} else {
+		decoder = gyaml.NewDecoder(bytes.NewReader(content))
+	}
 
 	cwd, _ := os.Getwd()
 	absPath, _ := filepath.Abs(suiteFilePath)
@@ -45,13 +50,28 @@ func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFile
 	for {
 		var s TestSuite
 		if err := decoder.Decode(&s); err != nil {
-			fmt.Println("line 43 error", err, absPath)
-			break
+			log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("suite '", suiteFilePath, "' error ", err)
+			if err.Error() == "EOF" {
+				break
+			} else if strings.Contains(err.Error(), "unknown escape character") {
+				y := common.YmlEscapeHandlers{}
+				escaped := y.Escape(string(content))
+				if escaped != nil {
+					if err = decoder.Decode(&s); err != nil {
+						if err.Error() == "EOF" {
+							break
+						}
+						return suites, err
+					}
+				}
+			} else {
+				return suites, err
+			}
 		}
 
 		s.definitionFile, err = filepath.Rel(cwd, absPath)
 		if err != nil {
-			break
+			return suites, err
 		}
 
 		s.chartRoute = chartRoute
@@ -63,42 +83,14 @@ func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFile
 				s.polishCapabilitiesSettings(test)
 			}
 		}
+		s.Values = append(s.Values, valueFilesSet...)
+		suites = append(suites, &s)
 
 		err = s.validateTestSuite()
 		if err != nil {
-			break
+			return suites, err
 		}
-		s.Values = append(s.Values, valueFilesSet...)
-		suites = append(suites, &s)
 	}
-
-	fmt.Println("line 44", suites)
-
-	// The pattern matches lines that contain only three hyphens (---), which is a common
-	// delimiter used in various file formats (e.g., YAML, Markdown) to separate sections.
-	// The -1 passed as the third argument to Split tells it to return all parts,
-	// including the parts matched by the regular expression pattern.
-	// parts := splitterPattern.Split(string(content), -1)
-	// log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("suite '", suiteFilePath, "' total parts ", len(parts))
-	// var testSuites []*TestSuite
-	// for _, part := range parts {
-	// 	if len(strings.TrimSpace(part)) > 0 {
-	// 		testSuite, suiteErr := createTestSuite(suiteFilePath, chartRoute, part, strict, valueFilesSet, false)
-	// 		if testSuite != nil {
-	// 			for _, test := range testSuite.Tests {
-	// 				if test != nil {
-	// 					testSuite.polishChartSettings(test)
-	// 					testSuite.polishCapabilitiesSettings(test)
-	// 				}
-	// 			}
-	// 		}
-	// 		testSuites = append(testSuites, testSuite)
-	// 		if suiteErr != nil {
-	// 			log.WithField(common.LOG_TEST_SUITE, "parse-test-suite-file").Debug("error '", suiteErr.Error(), "' strict ", strict)
-	// 			return testSuites, suiteErr
-	// 		}
-	// 	}
-	// }
 	return suites, nil
 }
 
@@ -238,10 +230,6 @@ func iterateTemplates(template string, suites []*TestSuite, absPath string, char
 		suites = append(suites, suite)
 	}
 	return subYamlErrs, previousSuitesLen, suites
-}
-
-type TestSuites struct {
-	Suites []*TestSuite
 }
 
 // TestSuite defines scope and templates to render and tests to run
@@ -438,7 +426,7 @@ func (s *TestSuite) validateTestSuite() error {
 
 func (s *TestSuite) SnapshotFileUrl() string {
 	if len(s.SnapshotId) > 0 {
-		// appedn the snapshot id
+		// append the snapshot id
 		return fmt.Sprintf("%s_%s", s.definitionFile, s.SnapshotId)
 	}
 	return s.definitionFile
