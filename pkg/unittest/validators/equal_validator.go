@@ -82,6 +82,8 @@ func (a EqualValidator) validateSingleActual(actual interface{}, manifestIndex, 
 			s = string(decodedSingleActual)
 		}
 		actual = uniformContent(s)
+	} else {
+		fmt.Println("line 86 EqualValidator.validateSingleActual", actual, reflect.TypeOf(actual), reflect.TypeOf(a.Value), a.Path)
 	}
 
 	if reflect.DeepEqual(a.Value, actual) == context.Negative {

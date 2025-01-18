@@ -11,3 +11,11 @@ spec:
     metadata:
       labels:
         app: example
+    spec:
+      securityContext:
+        runAsUser: 1000
+      containers:
+        - name: test-container
+          image: nginx:1.7.9
+          ports:
+            - containerPort: 8080

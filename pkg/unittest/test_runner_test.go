@@ -86,6 +86,7 @@ func TestV3RunnerOkWithPassedTests(t *testing.T) {
 	runner := TestRunner{
 		Printer:   printer.NewPrinter(buffer, nil),
 		TestFiles: []string{testTestFiles},
+		Failfast:  true,
 	}
 	passed := runner.RunV3([]string{testV3BasicChart})
 	assert.True(t, passed, buffer.String())

@@ -80,12 +80,9 @@ type TestRunner struct {
 func (tr *TestRunner) RunV3(ChartPaths []string) bool {
 	allPassed := true
 	start := time.Now()
-	fmt.Println("Start time: ", start)
 	for _, chartPath := range ChartPaths {
-		println("line 85")
 		chart, err := v3loader.Load(chartPath)
 		if err != nil {
-			println("line 88", err)
 			tr.printErroredChartHeader(err)
 			tr.countChart(false, err)
 			allPassed = false
@@ -94,7 +91,6 @@ func (tr *TestRunner) RunV3(ChartPaths []string) bool {
 			}
 			continue
 		}
-		println("line 95")
 		chartRoute := chart.Name()
 		testSuites, err := tr.getV3TestSuites(chartPath, chartRoute, chart)
 		if err != nil {
@@ -106,7 +102,6 @@ func (tr *TestRunner) RunV3(ChartPaths []string) bool {
 			}
 			continue
 		}
-		print("line 107")
 
 		tr.printChartHeader(chart.Name(), chartPath)
 		chartPassed := tr.runV3SuitesOfChart(testSuites, chartPath)
@@ -140,7 +135,6 @@ func (tr *TestRunner) getTestSuites(chartPath, chartRoute string) ([]*TestSuite,
 	if verr != nil {
 		return nil, verr
 	}
-	println("line 143")
 
 	var renderedTestSuites []*TestSuite
 	if len(tr.ChartTestsPath) > 0 {

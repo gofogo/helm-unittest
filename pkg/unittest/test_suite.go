@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -27,6 +28,17 @@ import (
 // helm https://github.com/helm/helm/blob/145d12f82fc7a2e39a17713340825686b661e0a1/pkg/releaseutil/manifest.go#L36
 var splitterPattern = regexp.MustCompile("(?:^|\\s*\n)---\\s*")
 
+func checkIntegerType(value interface{}) (int, error) {
+	switch value.(type) {
+	case int, int8, int16, int32, int64:
+		return value.(int), nil
+	case uint, uint8, uint16, uint32, uint64:
+		return value.(int), nil
+	default:
+		return 0, fmt.Errorf("not an integer")
+	}
+}
+
 // ParseTestSuiteFile parse a suite file that contain one or more suites at path and returns an array of TestSuite
 func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFilesSet []string) ([]*TestSuite, error) {
 	content, err := os.ReadFile(suiteFilePath)
@@ -34,18 +46,32 @@ func ParseTestSuiteFile(suiteFilePath, chartRoute string, strict bool, valueFile
 		return []*TestSuite{{chartRoute: chartRoute}}, err
 	}
 
-	// Use decoder to setup strict or unstrict
 	var decoder *gyaml.Decoder
 
+	options := []gyaml.DecodeOption{gyaml.CustomUnmarshaler(func(dst *interface{}, b []byte) error {
+		if err := gyaml.Unmarshal(b, dst); err != nil {
+			return err
+		}
+
+		fmt.Println("BINGO", *dst, reflect.TypeOf(*dst))
+		// required for backward compoatiblity with gopkg.in/yaml.v3 as it unmarshals all numbers as int64
+		if reflect.ValueOf(*dst).CanUint() {
+			// fmt.Println("BINGO before", reflect.TypeOf(*dst))
+			*dst = int(reflect.ValueOf(*dst).Uint())
+			fmt.Println("BINGO after", *dst, reflect.TypeOf(*dst))
+			// fmt.Println("BINGO after", *dst, reflect.TypeOf(*dst))
+		}
+		return nil
+	})}
+
 	if strict {
-		decoder = gyaml.NewDecoder(bytes.NewReader(content), gyaml.Strict())
+		decoder = gyaml.NewDecoder(bytes.NewReader(content), gyaml.Strict(), options[0])
 	} else {
-		decoder = gyaml.NewDecoder(bytes.NewReader(content))
+		decoder = gyaml.NewDecoder(bytes.NewReader(content), options...)
 	}
 
 	cwd, _ := os.Getwd()
 	absPath, _ := filepath.Abs(suiteFilePath)
-
 	var suites []*TestSuite
 	for {
 		var s TestSuite

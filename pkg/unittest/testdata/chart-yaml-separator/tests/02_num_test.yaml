@@ -1,0 +1,26 @@
+---
+suite: should test separator test suite
+templates:
+  - deployment.yaml
+tests:
+  - it: should correctly parse the deployment.yaml file
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+#  - it: should correctly parse the deployment.yaml file
+#    template: deployment.yaml
+#    asserts:
+#      - equal:
+#          path: spec.template.spec.securityContext.runAsUser
+#          value: 1000
+#
+#  - it: should correctly parse the deployment.yaml file
+#    template: deployment.yaml
+#    asserts:
+#      - contains:
+#          path: spec.template.spec.containers[0].ports
+#          content:
+#            containerPort: 8080
