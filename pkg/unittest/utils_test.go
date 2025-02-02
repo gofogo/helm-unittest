@@ -145,6 +145,7 @@ func TestV3RunnerWith_Fixture_Chart_YamlSeparator(t *testing.T) {
 		Strict:    false,
 	}
 	_ = runner.RunV3([]string{"testdata/chart-yaml-separator"})
+	fmt.Println(buffer.String())
 	assert.Contains(t, buffer.String(), "Test Suites: 5 passed, 5 total")
 	assert.Contains(t, buffer.String(), "Tests:       6 passed, 6 total")
 }
