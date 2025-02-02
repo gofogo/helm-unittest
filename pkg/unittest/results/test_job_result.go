@@ -40,10 +40,10 @@ func (tjr TestJobResult) print(printer *printer.Printer, verbosity int) {
 	hm, _ := in.Transform()
 	instrumentedYaml := string(hm)
 	fmt.Println(instrumentedYaml)
-	r := coverage.ResultEntry{}
-	r.Extract(hm)
+	// r := coverage.ResultEntry{}
+	// r.Extract(hm)
 
-	fmt.Println(r)
+	// fmt.Println(r)
 
 	fmt.Println("COVERAGE END. exit....")
 	os.Exit(1)

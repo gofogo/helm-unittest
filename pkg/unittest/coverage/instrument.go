@@ -1,6 +1,8 @@
 package coverage
 
 import (
+	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"text/template"
@@ -16,14 +18,22 @@ type InsertionStrategy interface {
 
 type TreeStrategy struct {
 	sb            strings.Builder
+	lineCounter   int
 	actionCounter int
 	branchCounter int
 	rangeCounter  int
 }
 
+func (t *TreeStrategy) addLineCounter() {
+	t.sb.WriteString("{{ $_ := set $__line \"" + strconv.Itoa(t.lineCounter) + "\" (add1 (get $__line \"" + strconv.Itoa(t.lineCounter) + "\" )) }}")
+	t.actionCounter++
+}
+
 func (t *TreeStrategy) addActionProbe() {
 	t.sb.WriteString("{{ $_ := set $__action \"" + strconv.Itoa(t.actionCounter) + "\" (add1 (get $__action \"" + strconv.Itoa(t.actionCounter) + "\" )) }}")
 	t.actionCounter++
+	fmt.Println("action probe", t.sb.String())
+	os.Exit(1)
 }
 
 func (t *TreeStrategy) addBranchProbe() {
@@ -93,17 +103,34 @@ func (t *TreeStrategy) walk(node parse.Node) {
 	}
 }
 
+// TODO:
+// should ignore lines covereed by if,range, with and etc
+func addLinesCoverage(t *TreeStrategy, text string) string {
+	// if line contains at least single ':' and not contains comments
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		if strings.Contains(line, ":") && !strings.Contains(line, "#") {
+			t.lineCounter += 1
+			s := " {{ $_ := set $__line \"" + strconv.Itoa(t.lineCounter) + "\" 0 }}"
+			lines[i] = line + s
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 func (t *TreeStrategy) insertProbes(template []byte) []byte {
+	// fmt.Println("with lines", output)
 	parsedTemplate := tpl.Must(
 		tpl.New("deployment").Funcs(funcMap()).Parse(string(template)),
 	)
 
-	// log.Println(top)
 	for _, node := range parsedTemplate.Root.Nodes {
 		t.walk(node)
 	}
 	// println(t.getActionCounterString())
 	var temp strings.Builder
+	// start simple -> add line counter
+	temp.WriteString("{{- $__line := dict }}\n")
 	temp.WriteString("{{- $__action := dict }}\n")
 	temp.WriteString("{{- $__branch := dict }}\n")
 	temp.WriteString("{{- $__loop := dict }}\n")
@@ -118,29 +145,40 @@ func (t *TreeStrategy) insertProbes(template []byte) []byte {
 	}
 	temp.WriteString(t.sb.String())
 
-	if t.actionCounter > 0 {
+	if t.lineCounter > 0 {
 		temp.WriteString(`
-__actions: {{- range $k, $timesExecuted := $__action }}
+__lines: {{- range $k, $timesExecuted := $__line }}
   - {{ $timesExecuted }}
 {{- end }}
 `)
 	}
 
-	if t.branchCounter > 0 {
-		temp.WriteString(`
-__branches: {{- range $k, $timesExecuted := $__branch }}
-  - {{ $timesExecuted }}
-{{- end }}
-`)
-	}
+	output := addLinesCoverage(t, temp.String())
+	fmt.Println("output", output)
 
-	if t.rangeCounter > 0 {
-		temp.WriteString(`
-__loops: {{- range $k, $timesExecuted := $__loop }}
-  - {{ $timesExecuted }}
-{{- end }}
-`)
-	}
+	// 	if t.actionCounter > 0 {
+	// 		temp.WriteString(`
+	// __actions: {{- range $k, $timesExecuted := $__action }}
+	//   - {{ $timesExecuted }}
+	// {{- end }}
+	// `)
+	// 	}
+	//
+	// 	if t.branchCounter > 0 {
+	// 		temp.WriteString(`
+	// __branches: {{- range $k, $timesExecuted := $__branch }}
+	//   - {{ $timesExecuted }}
+	// {{- end }}
+	// `)
+	// 	}
+
+	// 	if t.rangeCounter > 0 {
+	// 		temp.WriteString(`
+	// __loops: {{- range $k, $timesExecuted := $__loop }}
+	//   - {{ $timesExecuted }}
+	// {{- end }}
+	// `)
+	// 	}
 
 	return []byte(temp.String())
 }
