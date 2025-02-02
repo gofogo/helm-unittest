@@ -94,14 +94,11 @@ func (t *TreeStrategy) walk(node parse.Node) {
 }
 
 func (t *TreeStrategy) insertProbes(template []byte) []byte {
-
 	parsedTemplate := tpl.Must(
-
 		tpl.New("deployment").Funcs(funcMap()).Parse(string(template)),
 	)
 
 	// log.Println(top)
-
 	for _, node := range parsedTemplate.Root.Nodes {
 		t.walk(node)
 	}
@@ -154,14 +151,13 @@ type Instrumenter struct {
 	template []byte
 }
 
-// Create a new transformer
+// NewInstrumenter Create a new transformer
 func NewInstrumenter(strategy InsertionStrategy, template []byte) *Instrumenter {
 	return &Instrumenter{strategy: strategy, template: template}
 }
 
 func (t *Instrumenter) Transform() ([]byte, error) {
 	newBytes := t.strategy.insertProbes(t.template)
-
 	return newBytes, nil
 }
 

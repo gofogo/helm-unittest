@@ -82,9 +82,9 @@ func NewCoverageReporter(coverageResults []ResultMap) *CoverageReporter {
 	return &CoverageReporter{results: coverageResults}
 }
 
-func (t *ResultEntry) Extract(input string) {
+func (t *ResultEntry) Extract(input []byte) {
 	var templateYaml YamlStruct
-	err := yaml.Unmarshal([]byte(input), &templateYaml)
+	err := yaml.Unmarshal(input, &templateYaml)
 	if err != nil {
 		panic(err)
 	}
@@ -92,7 +92,6 @@ func (t *ResultEntry) Extract(input string) {
 	t.Actions = templateYaml.Actions
 	t.Branches = templateYaml.Branches
 	t.Loops = templateYaml.Loops
-
 }
 
 func (t *CoverageReporter) ComputeCoverage(resultMap ResultMap) {
