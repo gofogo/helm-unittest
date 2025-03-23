@@ -21,7 +21,8 @@ import (
 // or processing fails.
 func unmarshalJobTestHelper(input string, out *TestJob, t *testing.T) {
 	t.Helper()
-	err := common.YmlUnmarshal(input, &out)
+	err := common.YmlUnmarshal(input, out)
+	// fmt.Println("unmarshalJobTestHelper", out.Capabilities.MinorVersion)
 	assert.NoError(t, err)
 	out.SetCapabilities()
 }

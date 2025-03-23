@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	gyaml "github.com/goccy/go-yaml"
 	"github.com/helm-unittest/helm-unittest/internal/common"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/results"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/snapshot"
@@ -74,16 +75,27 @@ func createTestSuite(suiteFilePath string, chartRoute string, content string, st
 		return &suite, err
 	}
 
-	// Use decoder to setup strict or unstrict
-	yamlDecoder := common.YamlNewDecoder(strings.NewReader(content))
-	yamlDecoder.KnownFields(strict)
+	var decoder *gyaml.Decoder
 
-	if err := yamlDecoder.Decode(&suite); err != nil {
+	// options := []gyaml.DecodeOption{gyaml.CustomUnmarshaler(func(dst *interface{}, b []byte)
+
+	if strict {
+		decoder = gyaml.NewDecoder(strings.NewReader(content), gyaml.Strict())
+	} else {
+		decoder = gyaml.NewDecoder(strings.NewReader(content))
+	}
+
+	// Use decoder to setup strict or unstrict
+	// yamlDecoder := common.YamlNewDecoder(strings.NewReader(content))
+	// yamlDecoder.KnownFields(strict)
+
+	if err := decoder.Decode(&suite); err != nil {
 		if err.Error() == "EOF" {
 			// EOF error is not a real error, just return nil
 			// end-of-file is a condition in a OS where no more data can be read from a data source
 			return nil, nil
 		} else if strings.Contains(err.Error(), "unknown escape character") {
+			fmt.Println("BINGO!!!!!")
 			// We can retry if relates to unmaintained library issue https://github.com/go-yaml/yaml/pull/862
 			// escape special characters only if unmarshall results in an error
 			y := common.YmlEscapeHandlers{}
@@ -441,4 +453,15 @@ func (s *TestSuite) SnapshotFileUrl() string {
 		return fmt.Sprintf("%s_%s", s.definitionFile, s.SnapshotId)
 	}
 	return s.definitionFile
+}
+
+func checkIntegerType(value interface{}) (int, error) {
+	switch value.(type) {
+	case int, int8, int16, int32, int64:
+		return value.(int), nil
+	case uint, uint8, uint16, uint32, uint64:
+		return value.(int), nil
+	default:
+		return 0, fmt.Errorf("not an integer")
+	}
 }

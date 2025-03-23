@@ -7,36 +7,44 @@ import (
 
 	"io"
 
+	gyaml "github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
 	"github.com/stretchr/testify/assert"
-	yamlv3 "gopkg.in/yaml.v3"
-	yaml "sigs.k8s.io/yaml"
+	// yamlv3 "gopkg.in/yaml.v3"
 )
 
 type YamlNode struct {
-	Node yamlv3.Node
+	Node ast.Node
 }
 
-func NewYamlNode() YamlNode {
-	return YamlNode{
-		Node: yamlv3.Node{},
-	}
+// func NewYamlNode() YamlNode {
+// 	return YamlNode{
+// 		Node: ast.Node{},
+// 	}
+// }
+
+func GYamlNewDecoder(r io.Reader, opts ...gyaml.DecodeOption) *gyaml.Decoder {
+	return gyaml.NewDecoder(r, opts...)
 }
 
 // YamlNewDecoder returns a new decoder that reads from r.
-func YamlNewDecoder(r io.Reader) *yamlv3.Decoder {
-	return yamlv3.NewDecoder(r)
+func YamlNewDecoder(r io.Reader) *gyaml.Decoder {
+	// return yamlv3.NewDecoder(r)
+	return gyaml.NewDecoder(r)
 }
 
 // YamlNewEncoder returns a new encoder that writes to w.
-func YamlNewEncoder(w io.Writer) *yamlv3.Encoder {
-	return yamlv3.NewEncoder(w)
+func YamlNewEncoder(w io.Writer) *gyaml.Encoder {
+	// return yamlv3.NewEncoder(w)
+	return gyaml.NewEncoder(w)
 }
 
 // TrustedMarshalYAML marshal yaml without error returned, if an error happens it panics
 func TrustedMarshalYAML(d interface{}) string {
 	byteBuffer := new(bytes.Buffer)
-	yamlEncoder := yamlv3.NewEncoder(byteBuffer)
-	yamlEncoder.SetIndent(YAMLINDENTION)
+	// yamlEncoder := yamlv3.NewEncoder(byteBuffer)
+	// yamlEncoder.SetIndent(YAMLINDENTION)
+	yamlEncoder := gyaml.NewEncoder(byteBuffer, gyaml.Indent(YAMLINDENTION))
 	defer yamlEncoder.Close()
 	if err := yamlEncoder.Encode(d); err != nil {
 		panic(err)
@@ -47,7 +55,8 @@ func TrustedMarshalYAML(d interface{}) string {
 // TrustedUnmarshalYAML unmarshal yaml without error returned, if an error happens it panics
 func TrustedUnmarshalYAML(d string) map[string]interface{} {
 	parsedYaml := K8sManifest{}
-	yamlDecoder := yamlv3.NewDecoder(strings.NewReader(d))
+	// yamlDecoder := yamlv3.NewDecoder(strings.NewReader(d))
+	yamlDecoder := GYamlNewDecoder(strings.NewReader(d))
 	if err := yamlDecoder.Decode(&parsedYaml); err != nil {
 		panic(err)
 	}
@@ -55,16 +64,22 @@ func TrustedUnmarshalYAML(d string) map[string]interface{} {
 }
 
 func YamlToJson(in string) ([]byte, error) {
-	return yaml.YAMLToJSON([]byte(in))
+	return gyaml.YAMLToJSON([]byte(in))
+	// return yaml.YAMLToJSON([]byte(in))
 }
 
 func YmlUnmarshal(in string, out interface{}) error {
-	err := yamlv3.Unmarshal([]byte(in), out)
-	return err
+	// err := yamlv3.Unmarshal([]byte(in), out)
+	// fmt.Println("ERR", err, "OUT:", out)
+	e := gyaml.Unmarshal([]byte(in), out)
+	// fmt.Println("ERR", e, "OUT:", &out)
+	return e
+	// return err
 }
 
 func YmlMarshall(in interface{}) (string, error) {
-	out, err := yaml.Marshal(in)
+	// out, err := yaml.Marshal(in)
+	out, err := gyaml.Marshal(in)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +94,8 @@ func YmlUnmarshalTestHelper(input string, out any, t *testing.T) {
 
 func YmlMarshallTestHelper(in interface{}, t *testing.T) string {
 	t.Helper()
-	out, err := yaml.Marshal(in)
+	// out, err := yaml.Marshal(in)
+	out, err := gyaml.Marshal(in)
 	assert.NoError(t, err)
 	return string(out)
 }

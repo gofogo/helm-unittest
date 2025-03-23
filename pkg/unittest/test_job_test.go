@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/mock"
 	"os"
 	"path"
+
+	"github.com/stretchr/testify/mock"
 
 	"testing"
 	"time"
