@@ -6,8 +6,9 @@ import (
 	"io"
 	"strconv"
 
+	gyaml "github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
 	"github.com/helm-unittest/helm-unittest/internal/common"
-	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 )
 
 // GetValueOfSetPath get the value of the `--set` format path from a manifest
@@ -20,9 +21,11 @@ func GetValueOfSetPath(manifest common.K8sManifest, path string) ([]interface{},
 	byteBuffer := new(bytes.Buffer)
 
 	// Convert K8Manifest to yaml.Node
-	node := common.NewYamlNode()
-	yamlEncoder := common.YamlNewEncoder(byteBuffer)
-	yamlEncoder.SetIndent(common.YAMLINDENTION)
+	// node := common.NewYamlNode()
+	var node ast.Node
+	yamlEncoder := gyaml.NewEncoder(byteBuffer, gyaml.Indent(common.YAMLINDENTION))
+	// yamlEncoder := common.YamlNewEncoder(byteBuffer)
+	// yamlEncoder.SetIndent(common.YAMLINDENTION)
 
 	err := yamlEncoder.Encode(manifest)
 	if err != nil {
@@ -31,29 +34,52 @@ func GetValueOfSetPath(manifest common.K8sManifest, path string) ([]interface{},
 
 	yamlDecoder := common.YamlNewDecoder(byteBuffer)
 
-	if err := yamlDecoder.Decode(&node.Node); err != nil {
+	if err := yamlDecoder.Decode(&node); err != nil {
 		return nil, err
 	}
 
 	// Set Path
-	yamlPath, err := yamlpath.NewPath(path)
+	// yamlPath, err := yamlpath.NewPath(path)
+	// fmt.Println("BEFORE PATH", fmt.Sprintf("$.%s", path))
+	yamlPath, err := gyaml.PathString(fmt.Sprintf("$.%s", path))
 	if err != nil {
 		return nil, err
 	}
 
 	// Search for nodes
-	manifestParts, err := yamlPath.Find(&node.Node)
+	// fmt.Println("node:", node)
+	// fmt.Println("yamlPath:", yamlPath)
+
+	// manifestParts, err := yamlPath.Find(&node)
+
+	_, err = yamlPath.FilterNode(node)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, node := range manifestParts {
-		var singleResult interface{}
-		if err := node.Decode(&singleResult); err != nil {
-			return nil, err
-		}
-		manifestResult = append(manifestResult, singleResult)
-	}
+	fmt.Println("manifestParts:", byteBuffer.String(), "node:", node)
+	//
+	n, e := yamlPath.ReadNode(node)
+	fmt.Println("ERROR:", e)
+	fmt.Println("NNNN", n)
+
+	// var singleResult interface{}
+	//
+	// if err := n.MarshalYAML(&singleResult); err != nil {
+	// 	return nil, err
+	// }
+
+	manifestResult = append(manifestResult, n)
+
+	// for _, node := range manifestParts {
+	// 	var singleResult interface{}
+	// 	if err := node.Decode(&singleResult); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	manifestResult = append(manifestResult, singleResult)
+	// }
+
+	fmt.Println("manifestParts:", manifestResult)
 
 	return manifestResult, nil
 }

@@ -5,7 +5,6 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"helm.sh/helm/v3/pkg/postrender"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"helm.sh/helm/v3/pkg/postrender"
 
 	"github.com/helm-unittest/helm-unittest/internal/common"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/results"
@@ -105,6 +106,7 @@ func parseYamlFile(rendered string) ([]common.K8sManifest, error) {
 	// Replace --- with ---\n to ensure yaml rendering is parsed correctly/
 	rendered = splitterPattern.ReplaceAllString(rendered, "\n---\n")
 	decoder := common.YamlNewDecoder(strings.NewReader(rendered))
+	// decoder := common.GYamlNewDecoder(strings.NewReader(rendered))
 	parsedYamls := make([]common.K8sManifest, 0)
 
 	for {
@@ -727,10 +729,12 @@ func (t *TestJob) ModifyChartMetadata(targetChart *v3chart.Chart) {
 // fields in Capabilities. If apiVersions is nil, it sets APIVersions to nil. If it's a slice,
 // it appends string values to APIVersions.
 func (t *TestJob) SetCapabilities() {
+	fmt.Println("INSIDE SetCapabilities", t.CapabilitiesFields)
 	if val, ok := t.CapabilitiesFields["majorVersion"]; ok {
 		t.Capabilities.MajorVersion = convertIToString(val)
 	}
 	if val, ok := t.CapabilitiesFields["minorVersion"]; ok {
+		fmt.Println("INSIDE t.CapabilitiesFields[\"minorVersion\"]")
 		t.Capabilities.MinorVersion = convertIToString(val)
 	}
 	if val, ok := t.CapabilitiesFields["apiVersions"]; ok {
@@ -762,7 +766,7 @@ func convertIToString(val interface{}) string {
 	switch v := val.(type) {
 	case string:
 		return v
-	case int, int8, int16, int32, int64:
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return fmt.Sprintf("%d", val)
 	default:
 		return ""
