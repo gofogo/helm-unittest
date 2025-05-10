@@ -264,13 +264,14 @@ func (t *TestJob) RunV3(
 		// Continue to enable matching error via failedTemplate assert
 	}
 
-	postRenderedManifestsOfFiles, didPostRender, err := t.postRender(outputOfFiles)
-	if err != nil {
-		result.ExecError = err
-		return result
-	}
+	// postRenderedManifestsOfFiles, didPostRender, err := t.postRender(outputOfFiles)
+	// if err != nil {
+	// 	result.ExecError = err
+	// 	return result
+	// }
+	
 
-	manifestsOfFiles, err := t.parseManifestsFromOutputOfFiles(postRenderedManifestsOfFiles)
+	manifestsOfFiles, err := t.parseManifestsFromOutputOfFiles(make(map[string][]common.K8sManifest))
 	if err != nil {
 		result.ExecError = err
 		return result
@@ -290,7 +291,7 @@ func (t *TestJob) RunV3(
 		snapshotComparer:    snapshotComparer,
 		renderSucceed:       renderSucceed,
 		failFast:            t.configOrDefault().failFast,
-		didPostRender:       didPostRender,
+		didPostRender:       false,
 		renderError:         renderError,
 		isSkipEmptyTemplate: t.configOrDefault().isSkipEmptyTemplate,
 	}

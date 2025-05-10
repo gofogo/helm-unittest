@@ -37,6 +37,7 @@ func TrustedMarshalYAML(d interface{}) string {
 	byteBuffer := new(bytes.Buffer)
 	yamlEncoder := yamlv3.NewEncoder(byteBuffer)
 	yamlEncoder.SetIndent(YAMLINDENTION)
+	// TODO: do not do defer
 	defer yamlEncoder.Close()
 	if err := yamlEncoder.Encode(d); err != nil {
 		panic(err)
