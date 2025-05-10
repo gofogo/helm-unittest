@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	// "flag"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 
@@ -116,12 +120,24 @@ func RunPlugin(cmd *cobra.Command, chartPaths []string) {
 	}
 }
 
+// var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
+// var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
+
 // main to execute execute unittest command
 func main() {
+	go func() {
+		err := http.ListenAndServe("localhost:6060", nil)
+		fmt.Println("err:", err)
+	}()
+	fmt.Println("hello world")
+	var wg sync.WaitGroup
+	wg.Add(1)
+
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	wg.Wait()
 }
 
 func init() {
