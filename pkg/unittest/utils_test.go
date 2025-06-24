@@ -3,7 +3,6 @@ package unittest_test
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -417,60 +416,4 @@ Expected pattern '.*not-in-snapshot.*' not found in snapshot:
 
 	assert.Contains(t, buffer.String(), "Tests:       1 failed, 0 passed, 1 total")
 	assert.Contains(t, buffer.String(), "Snapshot:    1 passed, 1 total")
-}
-
-func TestV3RunnerWith_Fixture_Chart_WithSnapshot_Failedv0(t *testing.T) {
-
-	buffer := new(bytes.Buffer)
-	runner := TestRunner{
-		// Printer:   printer.NewPrinter(io.Discard, nil),
-		Printer:   printer.NewPrinter(buffer, nil),
-		TestFiles: []string{"tests/*_test.yaml"},
-		Strict:    true,
-	}
-	_ = runner.RunV3([]string{"testdata/chart-benchmark"})
-	fmt.Println(buffer.String())
-
-}
-
-func BenchmarkTestForCPUAndMemory(b *testing.B) {
-	files, err := copyFile("testdata/chart-benchmark/tests", "main_test.yaml", 5)
-	assert.NoError(b, err)
-
-	b.Cleanup(func() {
-		for _, file := range files {
-			err := os.Remove(file)
-			assert.NoError(b, err)
-		}
-	})
-
-	runner := TestRunner{
-		Printer:   printer.NewPrinter(io.Discard, nil),
-		TestFiles: []string{"tests/*_test.yaml"},
-		Strict:    true,
-	}
-
-	for b.Loop() {
-		_ = runner.RunV3([]string{"testdata/chart-benchmark"})
-	}
-}
-
-func copyFile(dir, src string, times int) ([]string, error) {
-	// Open the source file for reading
-	in, err := os.ReadFile(fmt.Sprintf("%s/%s", dir, src))
-	if err != nil {
-		return nil, err
-	}
-	var result []string
-
-	for i := 0; i < times; i++ {
-		fileName := fmt.Sprintf("%s/%d-%s", dir, i, src)
-		err := os.WriteFile(fileName, in, 0644)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, fileName)
-	}
-
-	return result, nil
 }
