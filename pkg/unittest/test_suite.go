@@ -247,6 +247,7 @@ type TestSuite struct {
 func (s *TestSuite) RunV3(
 	chartPath string,
 	snapshotCache *snapshot.Cache,
+	testFiles []string,
 	failFast bool,
 	renderPath string,
 	result *results.TestSuiteResult,
@@ -259,6 +260,7 @@ func (s *TestSuite) RunV3(
 	r := s.runV3TestJobs(
 		chartPath,
 		snapshotCache,
+		testFiles,
 		failFast,
 		renderPath,
 	)
@@ -393,6 +395,7 @@ func createHelmIgnoreFile(filePath, content string) error {
 func (s *TestSuite) runV3TestJobs(
 	chartPath string,
 	cache *snapshot.Cache,
+	testFiles []string,
 	failFast bool,
 	renderPath string,
 ) *SuiteResult {
@@ -400,11 +403,21 @@ func (s *TestSuite) runV3TestJobs(
 	jobResults := make([]*results.TestJobResult, len(s.Tests))
 	skipped := 0
 
+	rules := helmutils.Empty()
+	rules.AddDefaults()
+	excluded := append(s.ExcludeTemplates, testFiles...)
+
+	err := rules.AddRules(excluded)
+
+	if err != nil {
+		result.JobResults = []*results.TestJobResult{}
+		return &result
+	}
+
 	for idx, testJob := range s.Tests {
 		// (Re)load the chart used by this suite (with logging temporarily disabled)
 		log.SetOutput(io.Discard)
-		chart, _ := helmutils.Load(chartPath, s.ExcludeTemplates)
-		// chart, _ := v3loader.Load(chartPath)
+		chart, _ := helmutils.Load(chartPath, rules)
 		log.SetOutput(os.Stdout)
 
 		var jobResult *results.TestJobResult

@@ -1,7 +1,6 @@
 package helmutils
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +13,6 @@ func TestParseFail(t *testing.T) {
 		err := rule.parseRule(r)
 		assert.NoError(t, err)
 	}
-	for _, p := range rule.patterns {
-		fmt.Println(p)
-	}
+	assert.NotNil(t, rule)
+	assert.Len(t, rule.getPatterns(), 3)
 }

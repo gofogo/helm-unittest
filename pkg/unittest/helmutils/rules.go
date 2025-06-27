@@ -1,7 +1,6 @@
 package helmutils
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,7 +29,7 @@ limitations under the License.
 
 // Rules is a collection of path matching rules.
 //
-// Parse() and ParseFile() will construct and populate new Rules.
+// AddRules() and ParseFile() will construct and populate new Rules.
 // Empty() will create an immutable empty ruleset.
 type Rules struct {
 	patterns []*pattern
@@ -50,15 +49,6 @@ func Empty() *Rules {
 // Ignore all dotfiles in "templates/"
 func (r *Rules) AddDefaults() {
 	_ = r.parseRule(`templates/.?*`)
-	err := r.parseRule(`tests/*.yaml`)
-	if err != nil {
-		panic(fmt.Sprintf("1. error parsing default rule: %s", err))
-		// log.Printf("Failed to parse default rule: %s", err)
-	}
-	// err = r.parseRule(`!tests/__snapshot__/`)
-	// if err != nil {
-	// 	panic(fmt.Sprintf("2. error parsing default rule: %s", err))
-	// }
 }
 
 // Ignore evaluates the file at the given path, and returns true if it should be ignored.
@@ -72,8 +62,6 @@ func (r *Rules) Ignore(path string, fi os.FileInfo) bool {
 	}
 
 	// Disallow ignoring the current working directory.
-	// See issue:
-	// 1776 (New York City) Hamilton: "Pardon me, are you Aaron Burr, sir?"
 	if path == "." || path == "./" {
 		return false
 	}
@@ -81,18 +69,6 @@ func (r *Rules) Ignore(path string, fi os.FileInfo) bool {
 		if p.match == nil {
 			log.Printf("ignore: no matcher supplied for %q", p.raw)
 			return false
-		}
-
-		// For negative rules, we need to capture and return non-matches,
-		// and continue for matches.
-		if p.negate {
-			if p.mustDir && !fi.IsDir() {
-				return true
-			}
-			if !p.match(path, fi) {
-				return true
-			}
-			continue
 		}
 
 		// If the rule is looking for directories, and this is not a directory,
@@ -107,6 +83,15 @@ func (r *Rules) Ignore(path string, fi os.FileInfo) bool {
 	return false
 }
 
+func (r *Rules) AddRules(patterns []string) error {
+	for _, rule := range patterns {
+		if err := r.parseRule(rule); err != nil {
+			return errors.Wrapf(err, "failed to parse rule %q", rule)
+		}
+	}
+	return nil
+}
+
 // parseRule parses a rule string and creates a pattern, which is then stored in the Rules object.
 func (r *Rules) parseRule(rule string) error {
 	rule = strings.TrimSpace(rule)
@@ -115,11 +100,7 @@ func (r *Rules) parseRule(rule string) error {
 	if rule == "" {
 		return nil
 	}
-	// Comment
-	if strings.HasPrefix(rule, "#") {
-		return nil
-	}
-
+	// Fail any rules that start with a #, as these are comments.
 	// Fail any rules that contain **
 	if strings.Contains(rule, "**") {
 		return errors.New("double-star (**) syntax is not supported")

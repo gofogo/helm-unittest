@@ -84,6 +84,7 @@ func LoadDir(dir string, rules Rules) (*chart.Chart, error) {
 
 		// If rules matches, skip this file.
 		if rules.Ignore(n, fi) {
+			// fmt.Println("skipped", n, fi.Name())
 			return nil
 		}
 
