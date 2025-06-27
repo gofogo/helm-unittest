@@ -1,6 +1,7 @@
 package helmutils
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -51,13 +52,13 @@ func (r *Rules) AddDefaults() {
 	_ = r.parseRule(`templates/.?*`)
 	err := r.parseRule(`tests/*.yaml`)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("1. error parsing default rule: %s", err))
 		// log.Printf("Failed to parse default rule: %s", err)
 	}
-	err = r.parseRule(`!tests/__snapshot__/`)
-	if err != nil {
-		panic(err)
-	}
+	// err = r.parseRule(`!tests/__snapshot__/`)
+	// if err != nil {
+	// 	panic(fmt.Sprintf("2. error parsing default rule: %s", err))
+	// }
 }
 
 // Ignore evaluates the file at the given path, and returns true if it should be ignored.

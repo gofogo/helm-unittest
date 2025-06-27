@@ -91,10 +91,10 @@ func TestV3RunnerOkWithPassedTests(t *testing.T) {
 		Printer:   printer.NewPrinter(buffer, nil),
 		TestFiles: []string{testTestFiles},
 	}
-	_ = runner.RunV3([]string{testV3BasicChart})
-	fmt.Println(buffer.String())
-	// assert.True(t, passed, buffer.String())
-	// cupaloy.SnapshotT(t, makeOutputSnapshotable(buffer.String())...)
+	passed := runner.RunV3([]string{testV3BasicChart})
+	// fmt.Println(buffer.String())
+	assert.True(t, passed, buffer.String())
+	cupaloy.SnapshotT(t, makeOutputSnapshotable(buffer.String())...)
 }
 
 func TestV3RunnerOkWithSubSubChartsPassedTests(t *testing.T) {
