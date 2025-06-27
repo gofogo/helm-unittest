@@ -3,6 +3,7 @@ package unittest_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,26 @@ import (
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/printer"
 	"github.com/stretchr/testify/assert"
 )
+
+func copyFile(dir, src string, times int) ([]string, error) {
+	// Open the source file for reading
+	in, err := os.ReadFile(fmt.Sprintf("%s/%s", dir, src))
+	if err != nil {
+		return nil, err
+	}
+	var result []string
+
+	for i := 0; i < times; i++ {
+		fileName := fmt.Sprintf("%s/%d-%s", dir, i, src)
+		err := os.WriteFile(fileName, in, 0644)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, fileName)
+	}
+
+	return result, nil
+}
 
 // unmarshalJobTestHelper unmarshall a YAML-encoded string into a TestJob struct.
 // It extracts the majorVersion, minorVersion, and apiVersions fields from
@@ -245,6 +266,27 @@ func TestV3RunnerWith_Fixture_Chart_WithSubchartV1(t *testing.T) {
 
 	assert.Contains(t, buffer.String(), "Test Suites: 3 passed, 3 total")
 	assert.Contains(t, buffer.String(), "Tests:       9 passed, 9 total")
+}
+
+func TestV3RunnerWith_Fixture_Chart_WithSubchartV2(t *testing.T) {
+	files, err := copyFile("testdata/chart-benchmark/tests", "main_test.yaml", 30)
+	assert.NoError(t, err)
+
+	t.Cleanup(func() {
+		for _, file := range files {
+			err := os.Remove(file)
+			assert.NoError(t, err)
+		}
+	})
+
+	runner := TestRunner{
+		Printer:   printer.NewPrinter(io.Discard, nil),
+		TestFiles: []string{"tests/*_test.yaml"},
+		Strict:    true,
+	}
+
+	_ = runner.RunV3([]string{"testdata/chart-benchmark"})
+
 }
 
 func TestSplitBefore(t *testing.T) {

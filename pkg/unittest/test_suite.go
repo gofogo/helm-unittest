@@ -13,6 +13,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/helm-unittest/helm-unittest/internal/build"
 	"github.com/helm-unittest/helm-unittest/internal/common"
+	"github.com/helm-unittest/helm-unittest/pkg/unittest/helmutils"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/results"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/snapshot"
 	v3loader "helm.sh/helm/v3/pkg/chart/loader"
@@ -251,6 +252,7 @@ type TestSuite struct {
 func (s *TestSuite) RunV3(
 	chartPath string,
 	snapshotCache *snapshot.Cache,
+	testFiles []string,
 	failFast bool,
 	renderPath string,
 	result *results.TestSuiteResult,
@@ -263,6 +265,7 @@ func (s *TestSuite) RunV3(
 	r := s.runV3TestJobs(
 		chartPath,
 		snapshotCache,
+		testFiles,
 		failFast,
 		renderPath,
 	)
@@ -377,9 +380,27 @@ type SuiteResult struct {
 	JobResults []*results.TestJobResult
 }
 
+func createHelmIgnoreFile(filePath, content string) error {
+	// Create or truncate the file
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Write content to the file
+	_, err = file.WriteString(content)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *TestSuite) runV3TestJobs(
 	chartPath string,
 	cache *snapshot.Cache,
+	testFiles []string,
 	failFast bool,
 	renderPath string,
 ) *SuiteResult {
@@ -387,10 +408,21 @@ func (s *TestSuite) runV3TestJobs(
 	jobResults := make([]*results.TestJobResult, len(s.Tests))
 	skipped := 0
 
+	rules := helmutils.Empty()
+	rules.AddDefaults()
+	excluded := append(s.ExcludeTemplates, testFiles...)
+
+	err := rules.AddRules(excluded)
+
+	if err != nil {
+		result.JobResults = []*results.TestJobResult{}
+		return &result
+	}
+
 	for idx, testJob := range s.Tests {
 		// (Re)load the chart used by this suite (with logging temporarily disabled)
 		log.SetOutput(io.Discard)
-		chart, _ := v3loader.Load(chartPath)
+		chart, _ := helmutils.Load(chartPath, rules)
 		log.SetOutput(os.Stdout)
 
 		var jobResult *results.TestJobResult
