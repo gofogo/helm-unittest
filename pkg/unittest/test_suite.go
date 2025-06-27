@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/helm-unittest/helm-unittest/internal/common"
+	"github.com/helm-unittest/helm-unittest/pkg/unittest/helmutils"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/results"
 	"github.com/helm-unittest/helm-unittest/pkg/unittest/snapshot"
 	v3loader "helm.sh/helm/v3/pkg/chart/loader"
@@ -372,6 +373,23 @@ type SuiteResult struct {
 	JobResults []*results.TestJobResult
 }
 
+func createHelmIgnoreFile(filePath, content string) error {
+	// Create or truncate the file
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Write content to the file
+	_, err = file.WriteString(content)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *TestSuite) runV3TestJobs(
 	chartPath string,
 	cache *snapshot.Cache,
@@ -382,14 +400,12 @@ func (s *TestSuite) runV3TestJobs(
 	jobResults := make([]*results.TestJobResult, len(s.Tests))
 	skipped := 0
 
-	// (Re)load the chart used by this suite (with logging temporarily disabled)
-	log.SetOutput(io.Discard)
-	chart, _ := v3loader.Load(chartPath)
-	log.SetOutput(os.Stdout)
-
 	for idx, testJob := range s.Tests {
-
-		copiedChart := chart
+		// (Re)load the chart used by this suite (with logging temporarily disabled)
+		log.SetOutput(io.Discard)
+		chart, _ := helmutils.Load(chartPath, s.ExcludeTemplates)
+		// chart, _ := v3loader.Load(chartPath)
+		log.SetOutput(os.Stdout)
 
 		var jobResult *results.TestJobResult
 		job := results.TestJobResult{DisplayName: testJob.Name, Index: idx}
@@ -402,7 +418,7 @@ func (s *TestSuite) runV3TestJobs(
 				result.Pass = true
 			}
 		} else {
-			testJob.WithConfig(*NewTestConfig(copiedChart, cache,
+			testJob.WithConfig(*NewTestConfig(chart, cache,
 				WithRenderPath(renderPath),
 				WithFailFast(failFast),
 				WithPostRendererConfig(s.PostRendererConfig),
