@@ -508,7 +508,7 @@ func (t *TestJob) translateErrorToOutputFiles(err error, outputOfFiles map[strin
 			return nil, renderSucceed, err
 		}
 
-		// Parse the error and create an outputFile
+		// AddRules the error and create an outputFile
 		filePath, content := parseV3RenderError(err.Error())
 		// If error not parsed well, rethrow as normal.
 		if filePath == "" && len(content[common.RAW]) == 0 {

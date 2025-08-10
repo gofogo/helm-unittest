@@ -92,6 +92,7 @@ func TestV3RunnerOkWithPassedTests(t *testing.T) {
 		TestFiles: []string{testTestFiles},
 	}
 	passed := runner.RunV3([]string{testV3BasicChart})
+	// fmt.Println(buffer.String())
 	assert.True(t, passed, buffer.String())
 	cupaloy.SnapshotT(t, makeOutputSnapshotable(buffer.String())...)
 }
@@ -213,12 +214,14 @@ func TestV3RunnerOkWithFiles(t *testing.T) {
 }
 
 func TestV3RunnerOkWithFullsnapshot(t *testing.T) {
+	// t.Skip()
 	buffer := new(bytes.Buffer)
 	runner := TestRunner{
 		Printer:   printer.NewPrinter(buffer, nil),
 		TestFiles: []string{testTestFiles},
 	}
 	passed := runner.RunV3([]string{testV3FullSnapshotChart})
+	fmt.Println(buffer.String())
 	assert.True(t, passed, buffer.String())
 	cupaloy.SnapshotT(t, makeOutputSnapshotable(buffer.String())...)
 }
